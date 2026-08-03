@@ -27,31 +27,29 @@ def limpiar_datos():
         st.session_state[k] = ""
     st.session_state.reset_uploader += 1 
 
-# --- SISTEMA ULTRA ROBUSTO DE FUENTES ---
+# --- SISTEMA DE FUENTES CON SOPORTE NATIVO DE TILDES ---
 @st.cache_resource
 def descargar_fuente():
-    font_name = "Roboto-Acentos-Bold.ttf"
-    if not os.path.exists(font_name) or os.path.getsize(font_name) < 10000:
+    """Descarga DejaVuSans-Bold, que tiene soporte Unicode universal nativo para tildes."""
+    font_name = "DejaVuSans-Bold-Forzada.ttf"
+    
+    if not os.path.exists(font_name) or os.path.getsize(font_name) < 50000:
         try:
-            url = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Bold.ttf"
+            url = "https://github.com/dejavu-fonts/dejavu-fonts/raw/master/ttf/DejaVuSans-Bold.ttf"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=5) as response, open(font_name, 'wb') as out_file:
                 out_file.write(response.read())
         except Exception as e:
-            print(f"No se pudo descargar la fuente: {e}")
+            print(f"Error descargando fuente: {e}")
+            
     return font_name
 
 def obtener_fuente(size):
-    font_name = descargar_fuente()
-    opciones_fuente = [font_name, "arialbd.ttf", "Arial Bold.ttf", "DejaVuSans-Bold.ttf", "FreeSansBold.ttf"]
-    for op in opciones_fuente:
-        try:
-            return ImageFont.truetype(op, size)
-        except:
-            continue
+    font_path = descargar_fuente()
     try:
-        return ImageFont.load_default(size=size)
-    except:
+        return ImageFont.truetype(font_path, size)
+    except Exception as e:
+        print(f"Usando fuente por defecto debido a error: {e}")
         return ImageFont.load_default()
 
 # --- FUNCIONES DE DIBUJO AVANZADO ---
@@ -173,7 +171,7 @@ with tab1:
             f_sello = obtener_fuente(tamano_sello)
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
-            # 3. TÍTULO CON UNICODE PARA FORZAR ACENTO PERFECTO (OFERTA RELÁMPAGO)
+            # 3. TÍTULO CON UNICODE SEGURO (OFERTA RELÁMPAGO)
             texto_oferta = "OFERTA REL\u00c1MPAGO"
             dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
@@ -197,12 +195,11 @@ with tab1:
             banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+20), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # 5. SELLO CON UNICODE PARA FORZAR ACENTO (MÁS VENDIDO)
+            # 5. SELLO CON UNICODE SEGURO (MÁS VENDIDO)
             pos_sello_x, pos_sello_y = 850, 380
             draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=180, r_inner=150, points=16)
             
-            texto_mas = "M\u00c1S"
-            draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 10), texto_mas, fill=(255, 255, 255), font=f_sello, anchor="mm")
+            draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 10), "M\u00c1S", fill=(255, 255, 255), font=f_sello, anchor="mm")
             draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 10), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
 
             # 6. LISTÓN "34% OFF"
