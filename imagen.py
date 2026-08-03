@@ -147,10 +147,7 @@ with tab1:
     
     with col_izq:
         st.markdown("### 🎛️ Elementos de Imagen")
-        
-        # El usuario ahora solo sube el producto
         imagen_subida = st.file_uploader("Sube la foto de tu producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
-        
         precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 259.98", key="prod_orig_price")
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡34% OFF!", key="desc_txt")
         
@@ -164,15 +161,14 @@ with tab1:
     with col_der:
         if imagen_subida and precio and precio_original_txt:
             ancho, alto = 1080, 1920 
-            ruta_fondo = "fondo_ofertas.png" # Nombre del archivo local
+            ruta_fondo = "fondo_ofertas.png"
             
-            # 1. CONFIGURACIÓN DEL FONDO (Automático desde archivo)
+            # 1. FONDO
             if os.path.exists(ruta_fondo):
                 bg_raw = Image.open(ruta_fondo).convert("RGBA")
                 banner_base = ImageOps.fit(bg_raw, (ancho, alto), method=Image.Resampling.LANCZOS)
                 draw = ImageDraw.Draw(banner_base)
             else:
-                # Plan de respaldo si olvidaste poner la imagen en la carpeta
                 banner_base = Image.new("RGBA", (ancho, alto), (30, 100, 255, 255))
                 draw = ImageDraw.Draw(banner_base)
                 glow_bg = Image.new("RGBA", (ancho, alto), (0,0,0,0))
@@ -180,17 +176,6 @@ with tab1:
                 d_glow.ellipse([(-200, 300), (1280, 1400)], fill=(0, 200, 255, 120))
                 glow_bg = glow_bg.filter(ImageFilter.GaussianBlur(150))
                 banner_base.paste(glow_bg, (0,0), glow_bg)
-                
-                colores_confeti = [(255, 215, 0), (200, 200, 200), (0, 255, 255), (255, 100, 100)]
-                for _ in range(70):
-                    x = random.randint(20, ancho-20)
-                    y = random.randint(20, alto-20)
-                    tam_x = random.randint(15, 40)
-                    tam_y = random.randint(10, 20)
-                    color = random.choice(colores_confeti)
-                    img_confeti = Image.new("RGBA", (tam_x, tam_y), color)
-                    img_confeti = img_confeti.rotate(random.randint(0, 360), expand=True)
-                    banner_base.paste(img_confeti, (x, y), img_confeti)
 
             # 2. CARGAR FUENTES ESCALABLES
             font_titulo = obtener_fuente(tamano_titulo) 
@@ -200,9 +185,8 @@ with tab1:
             f_sello = obtener_fuente(tamano_sello)
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
-            # 3. TÍTULO "OFERTA RELÁMPAGO"
-            # 3. TÍTULO "OFERTA RELÁMPAGO" (Sin emojis para evitar errores de caracteres)
-            texto_oferta = "OFERTA RELAMPAGO"
+            # 3. TÍTULO "OFERTA RELÁMPAGO" (Con su acento correcto y sin emojis)
+            texto_oferta = "OFERTA RELÁMPAGO"
             dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
             # 4. IMAGEN DEL PRODUCTO CON SOMBRA
@@ -225,7 +209,7 @@ with tab1:
             banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+20), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # 5. SELLO "MÁS VENDIDO"
+            # 5. SELLO "MÁS VENDIDO" (Con acento correcto)
             pos_sello_x, pos_sello_y = 850, 380
             draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=180, r_inner=150, points=16)
             
