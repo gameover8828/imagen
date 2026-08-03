@@ -1,5 +1,5 @@
 import streamlit as st
-from PIL import Image, ImageDraw, ImageFont, ImageFilter
+from PIL import Image, ImageDraw, ImageFont, ImageFilter, ImageOps
 from io import BytesIO
 import os
 import math
@@ -33,7 +33,6 @@ def descargar_fuente():
     """Descarga la fuente y verifica que no esté corrupta o vacía."""
     font_name = "Montserrat-Bold.ttf"
     
-    # Si no existe o pesa menos de 10KB (archivo corrupto), la descargamos
     if not os.path.exists(font_name) or os.path.getsize(font_name) < 10000:
         try:
             url = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
@@ -48,13 +47,12 @@ def descargar_fuente():
 def obtener_fuente(size):
     font_name = descargar_fuente()
     
-    # Lista de fuentes de respaldo por Sistema Operativo
     opciones_fuente = [
         font_name, 
-        "arialbd.ttf",        # Windows
-        "Arial Bold.ttf",     # Mac
-        "DejaVuSans-Bold.ttf",# Linux
-        "FreeSansBold.ttf"    # Linux alternativa
+        "arialbd.ttf",        
+        "Arial Bold.ttf",     
+        "DejaVuSans-Bold.ttf",
+        "FreeSansBold.ttf"    
     ]
     
     for op in opciones_fuente:
@@ -63,7 +61,6 @@ def obtener_fuente(size):
         except:
             continue
             
-    # Si TODO falla, intentamos usar el default escalable (Requiere Pillow >= 10.1.0)
     try:
         return ImageFont.load_default(size=size)
     except:
@@ -71,7 +68,6 @@ def obtener_fuente(size):
 
 # --- FUNCIONES DE DIBUJO AVANZADO ---
 def dibujar_texto_neon(draw, img_base, xy, texto, fuente, color_texto, color_glow, anchor="mm", grosor_glow=8):
-    """Crea un efecto de resplandor (glow) detrás del texto."""
     x, y = xy
     capa_glow = Image.new("RGBA", img_base.size, (0,0,0,0))
     d_glow = ImageDraw.Draw(capa_glow)
@@ -82,12 +78,10 @@ def dibujar_texto_neon(draw, img_base, xy, texto, fuente, color_texto, color_glo
     draw.text((x, y), texto, fill=color_texto, font=fuente, anchor=anchor, stroke_width=3, stroke_fill=(255,255,255,100))
 
 def crear_liston_roto(ancho, alto, texto, fuente):
-    """Crea un listón rojo rasgado con borde amarillo."""
     img_liston = Image.new("RGBA", (ancho + 100, alto + 100), (0,0,0,0))
     d = ImageDraw.Draw(img_liston)
     x, y, w, h = 50, 50, ancho, alto
     
-    # Borde Amarillo (Sombra trasera rasgada)
     puntos_sombra = [
         (x-20, y-10), (x+w//2, y-30), (x+w+20, y-10),
         (x+w-10, y+h//2), (x+w+30, y+h+20),
@@ -95,7 +89,6 @@ def crear_liston_roto(ancho, alto, texto, fuente):
     ]
     d.polygon(puntos_sombra, fill=(255, 215, 0, 255)) 
     
-    # Fondo Rojo Principal
     puntos_rojos = [
         (x, y), (x+w//2, y-15), (x+w, y),
         (x+w-20, y+h//2), (x+w+10, y+h),
@@ -103,13 +96,11 @@ def crear_liston_roto(ancho, alto, texto, fuente):
     ]
     d.polygon(puntos_rojos, fill=(230, 20, 0, 255)) 
     
-    # Texto centrado gigante
     d.text((x + w//2, y + h//2), texto, fill=(255, 255, 255, 255), font=fuente, anchor="mm", stroke_width=6, stroke_fill=(150, 0, 0, 255))
     
     return img_liston
 
 def draw_neon_scalloped_badge(img_base, cx, cy, r_outer, r_inner, points):
-    """Dibuja un sello estrellado con efecto neón cyan y fondo oscuro."""
     glow_layer = Image.new("RGBA", img_base.size, (0,0,0,0))
     d_glow = ImageDraw.Draw(glow_layer)
     
@@ -119,18 +110,15 @@ def draw_neon_scalloped_badge(img_base, cx, cy, r_outer, r_inner, points):
         r = r_outer if i % 2 == 0 else r_inner
         poly.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
     
-    # Dibujar resplandor exterior cyan
     d_glow.polygon(poly, fill=(0, 255, 255, 80))
     glow_layer = glow_layer.filter(ImageFilter.GaussianBlur(15))
     img_base.paste(glow_layer, (0,0), glow_layer)
     
-    # Dibujar polígono base (sello principal) en la imagen
     draw = ImageDraw.Draw(img_base)
     draw.polygon(poly, fill=(10, 40, 80, 255)) 
     poly.append(poly[0]) 
     draw.line(poly, fill=(0, 255, 255, 255), width=8, joint="curve") 
     
-    # Línea interna
     draw.ellipse([(cx - r_inner + 15, cy - r_inner + 15), (cx + r_inner - 15, cy + r_inner - 15)], outline=(0, 255, 255, 180), width=3)
     
     return draw
@@ -159,14 +147,17 @@ with tab1:
     
     with col_izq:
         st.markdown("### 🎛️ Elementos de Imagen")
-        imagen_subida = st.file_uploader("Sube la foto de tu producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
+        
+        # NUEVO: Selector de Fondo
+        fondo_subido = st.file_uploader("1. Sube tu fondo (Opcional)", type=["png", "jpg", "jpeg"], key=f"bg_uploader_{st.session_state.reset_uploader}")
+        
+        imagen_subida = st.file_uploader("2. Sube la foto del producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
+        
         precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 259.98", key="prod_orig_price")
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡34% OFF!", key="desc_txt")
         
         st.markdown("### 🎚️ Ajuste de Tamaños (Letras)")
-        # NUEVO: Slider para el título principal
         tamano_titulo = st.slider("Tamaño: Título OFERTA", min_value=50, max_value=200, value=100)
-        
         tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=50, max_value=250, value=170)
         tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=50, max_value=150, value=100)
         tamano_precio = st.slider("Tamaño: Precio Oferta", min_value=100, max_value=300, value=220)
@@ -176,32 +167,35 @@ with tab1:
         if imagen_subida and precio and precio_original_txt:
             ancho, alto = 1080, 1920 
             
-            # 1. FONDO AZUL DEGRADADO
-            banner_base = Image.new("RGBA", (ancho, alto), (30, 100, 255, 255))
-            draw = ImageDraw.Draw(banner_base)
-            
-            # Resplandor cyan en el centro
-            glow_bg = Image.new("RGBA", (ancho, alto), (0,0,0,0))
-            d_glow = ImageDraw.Draw(glow_bg)
-            d_glow.ellipse([(-200, 300), (1280, 1400)], fill=(0, 200, 255, 120))
-            glow_bg = glow_bg.filter(ImageFilter.GaussianBlur(150))
-            banner_base.paste(glow_bg, (0,0), glow_bg)
-            
-            # Confeti
-            colores_confeti = [(255, 215, 0), (200, 200, 200), (0, 255, 255), (255, 100, 100)]
-            for _ in range(70):
-                x = random.randint(20, ancho-20)
-                y = random.randint(20, alto-20)
-                tam_x = random.randint(15, 40)
-                tam_y = random.randint(10, 20)
-                color = random.choice(colores_confeti)
+            # 1. CONFIGURACIÓN DEL FONDO (Ajuste automático)
+            if fondo_subido:
+                # Si el usuario sube un fondo, lo ajustamos al tamaño perfecto 1080x1920
+                bg_raw = Image.open(fondo_subido).convert("RGBA")
+                banner_base = ImageOps.fit(bg_raw, (ancho, alto), method=Image.Resampling.LANCZOS)
+                draw = ImageDraw.Draw(banner_base)
+            else:
+                # Fondo por defecto si no suben ninguno
+                banner_base = Image.new("RGBA", (ancho, alto), (30, 100, 255, 255))
+                draw = ImageDraw.Draw(banner_base)
+                glow_bg = Image.new("RGBA", (ancho, alto), (0,0,0,0))
+                d_glow = ImageDraw.Draw(glow_bg)
+                d_glow.ellipse([(-200, 300), (1280, 1400)], fill=(0, 200, 255, 120))
+                glow_bg = glow_bg.filter(ImageFilter.GaussianBlur(150))
+                banner_base.paste(glow_bg, (0,0), glow_bg)
                 
-                img_confeti = Image.new("RGBA", (tam_x, tam_y), color)
-                img_confeti = img_confeti.rotate(random.randint(0, 360), expand=True)
-                banner_base.paste(img_confeti, (x, y), img_confeti)
+                colores_confeti = [(255, 215, 0), (200, 200, 200), (0, 255, 255), (255, 100, 100)]
+                for _ in range(70):
+                    x = random.randint(20, ancho-20)
+                    y = random.randint(20, alto-20)
+                    tam_x = random.randint(15, 40)
+                    tam_y = random.randint(10, 20)
+                    color = random.choice(colores_confeti)
+                    img_confeti = Image.new("RGBA", (tam_x, tam_y), color)
+                    img_confeti = img_confeti.rotate(random.randint(0, 360), expand=True)
+                    banner_base.paste(img_confeti, (x, y), img_confeti)
 
             # 2. CARGAR FUENTES ESCALABLES
-            font_titulo = obtener_fuente(tamano_titulo) # ACTUALIZADO CON EL SLIDER
+            font_titulo = obtener_fuente(tamano_titulo) 
             f_liston = obtener_fuente(tamano_liston)
             f_tachado = obtener_fuente(tamano_tachado)
             f_precio_final = obtener_fuente(tamano_precio)
@@ -275,7 +269,7 @@ with tab1:
             st.image(buffered.getvalue(), caption="Diseño Premium Generado", use_container_width=True)
             st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_pro_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
         else:
-            st.info("👆 Sube la imagen y asegúrate de llenar Precio y Precio Original en la barra izquierda para generar el diseño.")
+            st.info("👆 Sube tu fondo, la imagen del producto y llena los precios para generar el diseño.")
 
 with tab2:
     if producto and precio and link_ml:
