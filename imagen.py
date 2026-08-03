@@ -1,5 +1,15 @@
+Aquí tienes el código modificado con exactamente lo que pediste.
+
+He realizado los siguientes cambios clave:
+
+1. **Eliminé el cuadro de descripción** que dibujaba el texto largo sobre la imagen.
+2. **Agregué controles de tamaño (sliders)** específicos para: el *Texto del Descuento* (listón), el *Precio Original Tachado* y el texto de *MÁS VENDIDO*.
+3. **Cambié la pestaña de WhatsApp por una de TikTok**. Ahora genera un texto optimizado para la descripción de TikTok (incluyendo hashtags basados en tu producto) y lo pone en un formato fácil de copiar.
+
+### Código Actualizado:
+
+```python
 import streamlit as st
-import urllib.parse
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from io import BytesIO
 import os
@@ -23,31 +33,35 @@ if "prod_cat" not in st.session_state:
     st.session_state.prod_cat = "General / Cualquiera"
 if "reset_uploader" not in st.session_state:
     st.session_state.reset_uploader = 0
-if "texto_descripcion" not in st.session_state:
-    st.session_state.texto_descripcion = ""
 
 def limpiar_datos():
     for k in keys_texto:
         st.session_state[k] = ""
     st.session_state.prod_cat = "General / Cualquiera"
-    st.session_state.texto_descripcion = ""
     st.session_state.reset_uploader += 1 
 
 # --- FUNCIONES DE UTILIDAD ---
-@st.cache_resource  
-def cargar_fuentes(tamano_personalizado=40):
+def cargar_fuentes_estaticas():
+    """Carga solo las fuentes que no cambian de tamaño"""
     try:
-        font_principal = ImageFont.truetype("arialbd.ttf", 150)
-        font_general = ImageFont.truetype("arial.ttf", 50)   
-        font_precios = ImageFont.truetype("arialbd.ttf", 130)
-        font_tachado = ImageFont.truetype("arialbd.ttf", 70) 
         font_titulo = ImageFont.truetype("arialbd.ttf", 90)   
-        # Nueva fuente dinámica para la descripción
-        font_desc = ImageFont.truetype("arialbd.ttf", tamano_personalizado)
-        return font_principal, font_general, font_precios, font_tachado, font_titulo, font_desc
+        font_precios = ImageFont.truetype("arialbd.ttf", 130)
+        return font_titulo, font_precios
     except:
         font_defecto = ImageFont.load_default()
-        return font_defecto, font_defecto, font_defecto, font_defecto, font_defecto, font_defecto
+        return font_defecto, font_defecto
+
+def cargar_fuentes_dinamicas(size_liston, size_tachado, size_sello):
+    """Carga las fuentes que el usuario puede ajustar"""
+    try:
+        f_liston = ImageFont.truetype("arialbd.ttf", size_liston)
+        f_tachado = ImageFont.truetype("arialbd.ttf", size_tachado)
+        f_sello_mas = ImageFont.truetype("arialbd.ttf", size_sello)
+        f_sello_vendido = ImageFont.truetype("arialbd.ttf", max(10, size_sello - 15)) # Ligeramente más pequeño
+        return f_liston, f_tachado, f_sello_mas, f_sello_vendido
+    except:
+        f_defecto = ImageFont.load_default()
+        return f_defecto, f_defecto, f_defecto, f_defecto
 
 def draw_scalloped_badge(draw, cx, cy, r_outer, r_inner, points, fill, outline, width):
     poly = []
@@ -94,18 +108,6 @@ def crear_liston_inclinado(ancho, alto, texto, fuente):
     d.text((ancho//2, alto//2 - 10), texto_mostrar, fill=(255, 235, 0), font=fuente, anchor="mm", stroke_width=4, stroke_fill=(180, 0, 0))
     return img_liston
 
-def create_sale_tag():
-    tag = Image.new("RGBA", (220, 90), (0,0,0,0))
-    d = ImageDraw.Draw(tag)
-    d.polygon([(40, 10), (200, 10), (200, 80), (40, 80), (10, 45)], fill=(255, 85, 50, 255))
-    d.ellipse([(20, 35), (32, 47)], fill=(255, 255, 255, 255))
-    try:
-        f = ImageFont.truetype("arialbd.ttf", 45)
-    except:
-        f = ImageFont.load_default()
-    d.text((120, 45), "sale", fill=(255, 255, 255, 255), font=f, anchor="mm")
-    return tag
-
 # --- INTERFAZ PRINCIPAL ---
 st.title("🛒 Generador de Ofertas Pro")
 
@@ -123,34 +125,22 @@ with col4:
 
 st.divider()
 
-# Generación centralizada del texto descriptivo
-mensaje_default = ""
-if producto and precio and link_ml:
-    mensaje_default = f"¡OFERTA RELÁMPAGO!\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\nLlevátelo por solo $ {precio} MXN.\n\nCómpralo de forma segura aquí:\n{link_ml}"
-
-st.subheader("📝 Descripción del Producto")
-mensaje_final = st.text_area("Edita el texto que aparecerá en WhatsApp y en la Imagen:", value=mensaje_default, height=150)
-
-st.divider()
-
-tab1, tab2 = st.tabs(["🖼️ Generador de Banner Multiredes", "💬 Enviar por WhatsApp"])
+tab1, tab2 = st.tabs(["🖼️ Creador de Imagen", "🎵 Descripción para TikTok"])
 
 with tab1:
     col_izq, col_der = st.columns([1, 2])
     
     with col_izq:
-        st.markdown("### 🎛️ Controles de Imagen")
+        st.markdown("### 🎛️ Elementos de Imagen")
         imagen_subida = st.file_uploader("Sube la foto de tu producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
         precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 500", key="prod_orig_price")
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡ÚLTIMOS PARES!", key="desc_txt")
         
-        st.markdown("### 🎚️ Ajustes de Texto en Imagen")
-        # Barras ajustables para posicionar el texto descriptivo
-        pos_x = st.slider("Posición Horizontal (X)", min_value=0, max_value=1080, value=100)
-        pos_y = st.slider("Posición Vertical (Y)", min_value=0, max_value=1920, value=1350)
-        tamano_fuente = st.slider("Tamaño de Letra", min_value=20, max_value=100, value=45)
-        color_texto = st.color_picker("Color del texto", "#000000")
-        alineacion = st.selectbox("Alineación del texto", ["left", "center", "right"], index=1)
+        st.markdown("### 🎚️ Ajuste de Tamaños (Letras)")
+        # Sliders específicos para los elementos que pediste
+        tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=30, max_value=150, value=90)
+        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=30, max_value=120, value=70)
+        tamano_sello = st.slider("Tamaño: MÁS VENDIDO", min_value=20, max_value=100, value=45)
 
     with col_der:
         if imagen_subida and precio and precio_original_txt:
@@ -159,7 +149,7 @@ with tab1:
             banner_base = Image.new("RGBA", (ancho, alto), (255, 255, 255, 255))
             draw = ImageDraw.Draw(banner_base)
             
-            # Confeti
+            # Confeti de fondo
             colores_confeti = [(255, 70, 70), (255, 215, 0), (70, 150, 255)]
             for _ in range(120):
                 x = random.randint(50, ancho-50)
@@ -173,18 +163,19 @@ with tab1:
                 p4 = (x - (tam/2) * math.sin(angle), y + (tam/2) * math.cos(angle))
                 draw.polygon([p1, p2, p3, p4], fill=color)
 
-            # Fuentes (Pasamos el tamaño del slider a la función)
-            fuente_script, fuente_sec, fuente_precios, fuente_tachado, font_titulo, font_desc = cargar_fuentes(tamano_fuente)
+            # Cargar fuentes estáticas y dinámicas (controladas por sliders)
+            font_titulo, font_precios = cargar_fuentes_estaticas()
+            f_liston, f_tachado, f_sello_mas, f_sello_vendido = cargar_fuentes_dinamicas(tamano_liston, tamano_tachado, tamano_sello)
             
-            # Título Superior
+            # Título Superior Fijo
             texto_oferta = "OFERTA RELÁMPAGO"
             draw.text((ancho//2 + 4, 134), texto_oferta, fill=(210, 210, 210, 255), font=font_titulo, anchor="mm")
             draw.text((ancho//2, 130), texto_oferta, fill=(50, 50, 50), font=font_titulo, anchor="mm", stroke_width=3, stroke_fill=(200, 200, 200))
 
-            # Imagen del producto
+            # Renderizar Imagen del producto
             img_prod = Image.open(imagen_subida).convert("RGBA")
             w_orig, h_orig = img_prod.size
-            nuevo_alto = 650 # Reducido un poco para dar espacio al texto
+            nuevo_alto = 750 
             nuevo_ancho = int((nuevo_alto / h_orig) * w_orig)
             if nuevo_ancho > ancho * 0.80:
                 nuevo_ancho = int(ancho * 0.80)
@@ -201,67 +192,59 @@ with tab1:
             banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # Sello "MÁS VENDIDO"
+            # Sello "MÁS VENDIDO" (con fuentes ajustables)
             pos_sello_x, pos_sello_y = 820, 280
             draw_scalloped_badge(draw, pos_sello_x+8, pos_sello_y+8, 150, 130, 16, (230, 230, 230, 255), (0,0,0,0), 0) 
             draw_scalloped_badge(draw, pos_sello_x, pos_sello_y, 150, 130, 16, (148, 230, 255, 255), (255, 255, 255, 255), 10)
             draw.ellipse([(pos_sello_x - 110, pos_sello_y - 110), (pos_sello_x + 110, pos_sello_y + 110)], outline=(255, 255, 255, 255), width=5)
-            try:
-                font_s = ImageFont.truetype("arialbd.ttf", 45)
-                font_sp = ImageFont.truetype("arialbd.ttf", 30)
-            except:
-                font_s, font_sp = fuente_sec, fuente_sec
-            draw.text((pos_sello_x, pos_sello_y - 25), "MÁS", fill=(72, 155, 230), font=font_s, anchor="mm")
-            draw.text((pos_sello_x, pos_sello_y + 25), "VENDIDO", fill=(72, 155, 230), font=font_sp, anchor="mm")
+            
+            draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2)), "MÁS", fill=(72, 155, 230), font=f_sello_mas, anchor="mm")
+            draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 5), "VENDIDO", fill=(72, 155, 230), font=f_sello_vendido, anchor="mm")
 
-            # Listón Inclinado
-            liston = crear_liston_inclinado(950, 220, porcentaje_desc_txt, font_titulo) # Ajustado tamaño
+            # Listón Inclinado (con fuente ajustable)
+            liston = crear_liston_inclinado(950, 220, porcentaje_desc_txt, f_liston)
             liston_rotado = liston.rotate(8, expand=True) 
             pos_liston_x = (ancho - liston_rotado.width) // 2
-            pos_liston_y = 1000
+            pos_liston_y = 1180
             banner_base.paste(liston_rotado, (pos_liston_x, pos_liston_y), liston_rotado)
 
-            # Convertir HEX color a RGB para Pillow
-            color_rgb = tuple(int(color_texto.lstrip('#')[i:i+2], 16) for i in (0, 2, 4))
-
-            # DIBUJAR EL TEXTO DESCRIPTIVO (Usando los sliders)
-            if mensaje_final:
-                draw.multiline_text(
-                    (pos_x, pos_y), 
-                    mensaje_final, 
-                    fill=color_rgb, 
-                    font=font_desc, 
-                    align=alineacion,
-                    spacing=10
-                )
-
-            # PRECIOS (Ajustados al fondo)
-            precio_orig_y = 1750
-            precio_final_y = 1830
+            # PRECIOS
+            precio_orig_y = 1580
+            precio_final_y = 1750
             
-            # Precio Tachado
+            # Precio Tachado (con fuente ajustable)
             texto_original_str = f"${precio_original_txt}"
-            w_tachado = draw.textlength(texto_original_str, font=fuente_tachado)
-            draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(120, 120, 120), font=fuente_tachado, anchor="mm")
-            draw.line([(ancho//2 - w_tachado//2 - 15, precio_orig_y), (ancho//2 + w_tachado//2 + 15, precio_orig_y)], fill=(255, 0, 0), width=8)
+            w_tachado = draw.textlength(texto_original_str, font=f_tachado)
+            draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(120, 120, 120), font=f_tachado, anchor="mm")
+            # Ajuste de grosor de la línea roja dependiendo del tamaño de la fuente
+            grosor_linea = max(4, tamano_tachado // 10)
+            draw.line([(ancho//2 - w_tachado//2 - 15, precio_orig_y), (ancho//2 + w_tachado//2 + 15, precio_orig_y)], fill=(255, 0, 0), width=grosor_linea)
             
-            # Precio Oferta 
+            # Precio Oferta (Fijo y Gigante)
             texto_oferta_str = f"${precio} MXN"
-            draw.text((ancho//2 + 4, precio_final_y + 4), texto_oferta_str, fill=(0, 80, 0, 120), font=fuente_precios, anchor="mm")
-            draw.text((ancho//2, precio_final_y), texto_oferta_str, fill=(100, 230, 0), font=fuente_precios, anchor="mm", stroke_width=3, stroke_fill=(30, 130, 30))
+            draw.text((ancho//2 + 4, precio_final_y + 4), texto_oferta_str, fill=(0, 80, 0, 120), font=font_precios, anchor="mm")
+            draw.text((ancho//2, precio_final_y), texto_oferta_str, fill=(100, 230, 0), font=font_precios, anchor="mm", stroke_width=3, stroke_fill=(30, 130, 30))
 
             buffered = BytesIO()
             banner_base.save(buffered, format="PNG")
             
-            st.image(buffered.getvalue(), caption="Diseño Listo para Redes", use_container_width=True)
+            st.image(buffered.getvalue(), caption="Diseño Listo", use_container_width=True)
             st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
         else:
             st.info("👆 Sube la imagen y asegúrate de llenar Precio y Precio Original en la barra izquierda para generar el diseño.")
 
 with tab2:
-    if mensaje_final:
-        st.success("Este es el texto que se enviará por WhatsApp:")
-        st.write(mensaje_final)
-        st.link_button("📲 Enviar mensaje por WhatsApp", f"https://wa.me/?text={urllib.parse.quote(mensaje_final)}", type="primary")
+    if producto and precio and link_ml:
+        st.subheader("📱 Copia esta descripción para tu video de TikTok")
+        
+        # Generar hashtags automáticamente basados en el nombre del producto
+        hashtag_producto = f"#{producto.replace(' ', '').lower()}"
+        
+        texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
+        
+        # st.code genera un bloque de texto que incluye automáticamente un botón de "Copiar" en la esquina superior derecha
+        st.code(texto_tiktok, language="text")
+        
+        st.info("💡 Consejo: En TikTok, los links en la descripción a veces no son clicables. Considera poner el link también en tu perfil (Bio) o en un comentario fijado.")
     else:
-        st.info("Llena los datos del producto para generar el mensaje.")
+        st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para generar la descripción de TikTok.")
