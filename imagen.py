@@ -201,7 +201,7 @@ with tab1:
             pos_sello_x, pos_sello_y = 850, 380
             draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=180, r_inner=150, points=16)
             
-            texto_mas = "M\u00c1S"
+            texto_mas = "+"
             draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 10), texto_mas, fill=(255, 255, 255), font=f_sello, anchor="mm")
             draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 10), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
 
