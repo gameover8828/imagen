@@ -1,10 +1,10 @@
-
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from io import BytesIO
 import os
 import math
 import random
+import urllib.request  # Añadido para descargar la fuente
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -30,29 +30,34 @@ def limpiar_datos():
     st.session_state.prod_cat = "General / Cualquiera"
     st.session_state.reset_uploader += 1 
 
-# --- FUNCIONES DE UTILIDAD ---
-def cargar_fuentes_estaticas():
-    """Carga solo las fuentes que no cambian de tamaño"""
+# --- NUEVA FUNCIÓN PARA FUENTES ROBUSTA ---
+def obtener_fuente(size):
+    """
+    Descarga una fuente si no existe localmente para garantizar que el 
+    texto se pueda redimensionar sin importar en qué computadora se ejecute.
+    """
+    font_name = "fuente_ofertas.ttf"
+    
+    # 1. Si no tenemos la fuente, la descargamos de internet
+    if not os.path.exists(font_name):
+        try:
+            url = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
+            urllib.request.urlretrieve(url, font_name)
+        except Exception as e:
+            pass # Si falla por falta de internet, intentará usar Arial
+            
+    # 2. Intentamos cargar la fuente descargada
     try:
-        font_titulo = ImageFont.truetype("arialbd.ttf", 90)   
-        font_precios = ImageFont.truetype("arialbd.ttf", 130)
-        return font_titulo, font_precios
+        return ImageFont.truetype(font_name, size)
     except:
-        font_defecto = ImageFont.load_default()
-        return font_defecto, font_defecto
+        # 3. Plan B: Intentar cargar Arial de Windows
+        try:
+            return ImageFont.truetype("arialbd.ttf", size)
+        except:
+            # 4. Último recurso (Esta es la que no cambia de tamaño)
+            return ImageFont.load_default()
 
-def cargar_fuentes_dinamicas(size_liston, size_tachado, size_sello):
-    """Carga las fuentes que el usuario puede ajustar"""
-    try:
-        f_liston = ImageFont.truetype("arialbd.ttf", size_liston)
-        f_tachado = ImageFont.truetype("arialbd.ttf", size_tachado)
-        f_sello_mas = ImageFont.truetype("arialbd.ttf", size_sello)
-        f_sello_vendido = ImageFont.truetype("arialbd.ttf", max(10, size_sello - 15)) # Ligeramente más pequeño
-        return f_liston, f_tachado, f_sello_mas, f_sello_vendido
-    except:
-        f_defecto = ImageFont.load_default()
-        return f_defecto, f_defecto, f_defecto, f_defecto
-
+# --- FUNCIONES DE UTILIDAD PARA DIBUJO ---
 def draw_scalloped_badge(draw, cx, cy, r_outer, r_inner, points, fill, outline, width):
     poly = []
     for i in range(points * 2):
@@ -127,10 +132,10 @@ with tab1:
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡ÚLTIMOS PARES!", key="desc_txt")
         
         st.markdown("### 🎚️ Ajuste de Tamaños (Letras)")
-        # Sliders específicos para los elementos que pediste
+        # Sliders específicos 
         tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=30, max_value=150, value=90)
-        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=30, max_value=120, value=70)
-        tamano_sello = st.slider("Tamaño: MÁS VENDIDO", min_value=20, max_value=100, value=45)
+        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=30, max_value=150, value=70)
+        tamano_sello = st.slider("Tamaño: MÁS VENDIDO", min_value=20, max_value=120, value=45)
 
     with col_der:
         if imagen_subida and precio and precio_original_txt:
@@ -153,9 +158,14 @@ with tab1:
                 p4 = (x - (tam/2) * math.sin(angle), y + (tam/2) * math.cos(angle))
                 draw.polygon([p1, p2, p3, p4], fill=color)
 
-            # Cargar fuentes estáticas y dinámicas (controladas por sliders)
-            font_titulo, font_precios = cargar_fuentes_estaticas()
-            f_liston, f_tachado, f_sello_mas, f_sello_vendido = cargar_fuentes_dinamicas(tamano_liston, tamano_tachado, tamano_sello)
+            # CARGAR FUENTES CON LA NUEVA FUNCIÓN
+            font_titulo = obtener_fuente(90)
+            font_precios = obtener_fuente(130)
+            
+            f_liston = obtener_fuente(tamano_liston)
+            f_tachado = obtener_fuente(tamano_tachado)
+            f_sello_mas = obtener_fuente(tamano_sello)
+            f_sello_vendido = obtener_fuente(max(10, tamano_sello - 15))
             
             # Título Superior Fijo
             texto_oferta = "OFERTA RELÁMPAGO"
@@ -182,7 +192,7 @@ with tab1:
             banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # Sello "MÁS VENDIDO" (con fuentes ajustables)
+            # Sello "MÁS VENDIDO"
             pos_sello_x, pos_sello_y = 820, 280
             draw_scalloped_badge(draw, pos_sello_x+8, pos_sello_y+8, 150, 130, 16, (230, 230, 230, 255), (0,0,0,0), 0) 
             draw_scalloped_badge(draw, pos_sello_x, pos_sello_y, 150, 130, 16, (148, 230, 255, 255), (255, 255, 255, 255), 10)
@@ -191,7 +201,7 @@ with tab1:
             draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2)), "MÁS", fill=(72, 155, 230), font=f_sello_mas, anchor="mm")
             draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 5), "VENDIDO", fill=(72, 155, 230), font=f_sello_vendido, anchor="mm")
 
-            # Listón Inclinado (con fuente ajustable)
+            # Listón Inclinado
             liston = crear_liston_inclinado(950, 220, porcentaje_desc_txt, f_liston)
             liston_rotado = liston.rotate(8, expand=True) 
             pos_liston_x = (ancho - liston_rotado.width) // 2
@@ -202,11 +212,11 @@ with tab1:
             precio_orig_y = 1580
             precio_final_y = 1750
             
-            # Precio Tachado (con fuente ajustable)
+            # Precio Tachado
             texto_original_str = f"${precio_original_txt}"
             w_tachado = draw.textlength(texto_original_str, font=f_tachado)
             draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(120, 120, 120), font=f_tachado, anchor="mm")
-            # Ajuste de grosor de la línea roja dependiendo del tamaño de la fuente
+            
             grosor_linea = max(4, tamano_tachado // 10)
             draw.line([(ancho//2 - w_tachado//2 - 15, precio_orig_y), (ancho//2 + w_tachado//2 + 15, precio_orig_y)], fill=(255, 0, 0), width=grosor_linea)
             
@@ -227,12 +237,10 @@ with tab2:
     if producto and precio and link_ml:
         st.subheader("📱 Copia esta descripción para tu video de TikTok")
         
-        # Generar hashtags automáticamente basados en el nombre del producto
         hashtag_producto = f"#{producto.replace(' ', '').lower()}"
         
         texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
         
-        # st.code genera un bloque de texto que incluye automáticamente un botón de "Copiar" en la esquina superior derecha
         st.code(texto_tiktok, language="text")
         
         st.info("💡 Consejo: En TikTok, los links en la descripción a veces no son clicables. Considera poner el link también en tu perfil (Bio) o en un comentario fijado.")
