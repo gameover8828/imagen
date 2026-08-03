@@ -148,10 +148,8 @@ with tab1:
     with col_izq:
         st.markdown("### 🎛️ Elementos de Imagen")
         
-        # NUEVO: Selector de Fondo
-        fondo_subido = st.file_uploader("1. Sube tu fondo (Opcional)", type=["png", "jpg", "jpeg"], key=f"bg_uploader_{st.session_state.reset_uploader}")
-        
-        imagen_subida = st.file_uploader("2. Sube la foto del producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
+        # El usuario ahora solo sube el producto
+        imagen_subida = st.file_uploader("Sube la foto de tu producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
         
         precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 259.98", key="prod_orig_price")
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡34% OFF!", key="desc_txt")
@@ -166,15 +164,15 @@ with tab1:
     with col_der:
         if imagen_subida and precio and precio_original_txt:
             ancho, alto = 1080, 1920 
+            ruta_fondo = "fondo_ofertas.png" # Nombre del archivo local
             
-            # 1. CONFIGURACIÓN DEL FONDO (Ajuste automático)
-            if fondo_subido:
-                # Si el usuario sube un fondo, lo ajustamos al tamaño perfecto 1080x1920
-                bg_raw = Image.open(fondo_subido).convert("RGBA")
+            # 1. CONFIGURACIÓN DEL FONDO (Automático desde archivo)
+            if os.path.exists(ruta_fondo):
+                bg_raw = Image.open(ruta_fondo).convert("RGBA")
                 banner_base = ImageOps.fit(bg_raw, (ancho, alto), method=Image.Resampling.LANCZOS)
                 draw = ImageDraw.Draw(banner_base)
             else:
-                # Fondo por defecto si no suben ninguno
+                # Plan de respaldo si olvidaste poner la imagen en la carpeta
                 banner_base = Image.new("RGBA", (ancho, alto), (30, 100, 255, 255))
                 draw = ImageDraw.Draw(banner_base)
                 glow_bg = Image.new("RGBA", (ancho, alto), (0,0,0,0))
@@ -269,7 +267,7 @@ with tab1:
             st.image(buffered.getvalue(), caption="Diseño Premium Generado", use_container_width=True)
             st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_pro_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
         else:
-            st.info("👆 Sube tu fondo, la imagen del producto y llena los precios para generar el diseño.")
+            st.info("👆 Sube la imagen del producto y llena los precios para generar el diseño.")
 
 with tab2:
     if producto and precio and link_ml:
