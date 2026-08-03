@@ -110,7 +110,6 @@ def crear_liston_roto(ancho, alto, texto, fuente):
 
 def draw_neon_scalloped_badge(img_base, cx, cy, r_outer, r_inner, points):
     """Dibuja un sello estrellado con efecto neón cyan y fondo oscuro."""
-    # Capa para el resplandor
     glow_layer = Image.new("RGBA", img_base.size, (0,0,0,0))
     d_glow = ImageDraw.Draw(glow_layer)
     
@@ -127,11 +126,11 @@ def draw_neon_scalloped_badge(img_base, cx, cy, r_outer, r_inner, points):
     
     # Dibujar polígono base (sello principal) en la imagen
     draw = ImageDraw.Draw(img_base)
-    draw.polygon(poly, fill=(10, 40, 80, 255)) # Azul muy oscuro (fondo del sello)
-    poly.append(poly[0]) # Cerrar poligono para la linea
-    draw.line(poly, fill=(0, 255, 255, 255), width=8, joint="curve") # Borde Cyan Neón
+    draw.polygon(poly, fill=(10, 40, 80, 255)) 
+    poly.append(poly[0]) 
+    draw.line(poly, fill=(0, 255, 255, 255), width=8, joint="curve") 
     
-    # Línea interna (círculo interior punteado o continuo)
+    # Línea interna
     draw.ellipse([(cx - r_inner + 15, cy - r_inner + 15), (cx + r_inner - 15, cy + r_inner - 15)], outline=(0, 255, 255, 180), width=3)
     
     return draw
@@ -165,6 +164,9 @@ with tab1:
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡34% OFF!", key="desc_txt")
         
         st.markdown("### 🎚️ Ajuste de Tamaños (Letras)")
+        # NUEVO: Slider para el título principal
+        tamano_titulo = st.slider("Tamaño: Título OFERTA", min_value=50, max_value=200, value=100)
+        
         tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=50, max_value=250, value=170)
         tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=50, max_value=150, value=100)
         tamano_precio = st.slider("Tamaño: Precio Oferta", min_value=100, max_value=300, value=220)
@@ -198,8 +200,8 @@ with tab1:
                 img_confeti = img_confeti.rotate(random.randint(0, 360), expand=True)
                 banner_base.paste(img_confeti, (x, y), img_confeti)
 
-            # 2. CARGAR FUENTES ESCALABLES (Sistema Protegido)
-            font_titulo = obtener_fuente(100)
+            # 2. CARGAR FUENTES ESCALABLES
+            font_titulo = obtener_fuente(tamano_titulo) # ACTUALIZADO CON EL SLIDER
             f_liston = obtener_fuente(tamano_liston)
             f_tachado = obtener_fuente(tamano_tachado)
             f_precio_final = obtener_fuente(tamano_precio)
@@ -230,15 +232,14 @@ with tab1:
             banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+20), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # 5. SELLO "MÁS VENDIDO" (Estilo Estrellado Neón)
+            # 5. SELLO "MÁS VENDIDO"
             pos_sello_x, pos_sello_y = 850, 380
             draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=180, r_inner=150, points=16)
             
-            # Texto dentro del sello
             draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 10), "MÁS", fill=(255, 255, 255), font=f_sello, anchor="mm")
             draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 10), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
 
-            # 6. LISTÓN "34% OFF" ROTO E INCLINADO
+            # 6. LISTÓN "34% OFF"
             liston = crear_liston_roto(950, 250, porcentaje_desc_txt, f_liston)
             liston_rotado = liston.rotate(10, expand=True) 
             pos_liston_x = (ancho - liston_rotado.width) // 2
@@ -261,11 +262,10 @@ with tab1:
             draw.text((ancho//2 + 5, precio_orig_y + 5), texto_original_str, fill=(0, 0, 0, 150), font=f_tachado, anchor="mm") 
             draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(255, 255, 255, 255), font=f_tachado, anchor="mm")
             
-            # Grosor dinámico de la línea roja
             grosor_tachado = max(6, tamano_tachado // 10)
             draw.line([(ancho//2 - w_tachado//2 - 20, precio_orig_y), (ancho//2 + w_tachado//2 + 20, precio_orig_y)], fill=(255, 50, 50), width=grosor_tachado)
             
-            # Precio Oferta (Verde Neón Gigante)
+            # Precio Oferta 
             texto_oferta_str = f"${precio} MXN"
             dibujar_texto_neon(draw, banner_base, (ancho//2, precio_final_y), texto_oferta_str, f_precio_final, (100, 255, 100), (0, 150, 0), grosor_glow=15)
 
