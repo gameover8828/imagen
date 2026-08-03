@@ -1,14 +1,4 @@
-Aquí tienes el código modificado con exactamente lo que pediste.
 
-He realizado los siguientes cambios clave:
-
-1. **Eliminé el cuadro de descripción** que dibujaba el texto largo sobre la imagen.
-2. **Agregué controles de tamaño (sliders)** específicos para: el *Texto del Descuento* (listón), el *Precio Original Tachado* y el texto de *MÁS VENDIDO*.
-3. **Cambié la pestaña de WhatsApp por una de TikTok**. Ahora genera un texto optimizado para la descripción de TikTok (incluyendo hashtags basados en tu producto) y lo pone en un formato fácil de copiar.
-
-### Código Actualizado:
-
-```python
 import streamlit as st
 from PIL import Image, ImageDraw, ImageFont, ImageFilter
 from io import BytesIO
