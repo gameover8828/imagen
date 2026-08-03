@@ -4,7 +4,7 @@ from io import BytesIO
 import os
 import math
 import random
-import urllib.request  # Añadido para descargar la fuente
+import urllib.request
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -19,99 +19,91 @@ for key in keys_texto:
     if key not in st.session_state:
         st.session_state[key] = ""
 
-if "prod_cat" not in st.session_state:
-    st.session_state.prod_cat = "General / Cualquiera"
 if "reset_uploader" not in st.session_state:
     st.session_state.reset_uploader = 0
 
 def limpiar_datos():
     for k in keys_texto:
         st.session_state[k] = ""
-    st.session_state.prod_cat = "General / Cualquiera"
     st.session_state.reset_uploader += 1 
 
-# --- NUEVA FUNCIÓN PARA FUENTES ROBUSTA ---
-def obtener_fuente(size):
-    """
-    Descarga una fuente si no existe localmente para garantizar que el 
-    texto se pueda redimensionar sin importar en qué computadora se ejecute.
-    """
-    font_name = "fuente_ofertas.ttf"
-    
-    # 1. Si no tenemos la fuente, la descargamos de internet
+# --- SISTEMA ROBUSTO DE FUENTES ---
+@st.cache_resource
+def descargar_fuente():
+    """Descarga la fuente Montserrat-Bold de Google Fonts si no existe."""
+    font_name = "Montserrat-Bold.ttf"
     if not os.path.exists(font_name):
         try:
             url = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
-            urllib.request.urlretrieve(url, font_name)
+            req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
+            with urllib.request.urlopen(req) as response, open(font_name, 'wb') as out_file:
+                out_file.write(response.read())
         except Exception as e:
-            pass # Si falla por falta de internet, intentará usar Arial
-            
-    # 2. Intentamos cargar la fuente descargada
-    try:
-        return ImageFont.truetype(font_name, size)
-    except:
-        # 3. Plan B: Intentar cargar Arial de Windows
+            print(f"Error descargando fuente: {e}")
+    return font_name
+
+def obtener_fuente(size):
+    font_name = descargar_fuente()
+    opciones = [font_name, "arialbd.ttf", "DejaVuSans-Bold.ttf", "LiberationSans-Bold.ttf"]
+    for op in opciones:
         try:
-            return ImageFont.truetype("arialbd.ttf", size)
+            return ImageFont.truetype(op, size)
         except:
-            # 4. Último recurso (Esta es la que no cambia de tamaño)
-            return ImageFont.load_default()
+            continue
+    return ImageFont.load_default()
 
-# --- FUNCIONES DE UTILIDAD PARA DIBUJO ---
-def draw_scalloped_badge(draw, cx, cy, r_outer, r_inner, points, fill, outline, width):
-    poly = []
-    for i in range(points * 2):
-        angle = i * math.pi / points
-        r = r_outer if i % 2 == 0 else r_inner
-        poly.append((cx + r * math.cos(angle), cy + r * math.sin(angle)))
-    draw.polygon(poly, fill=fill)
-    poly.append(poly[0])
-    if width > 0:
-        draw.line(poly, fill=outline, width=width, joint="curve")
+# --- FUNCIONES DE DIBUJO AVANZADO ---
+def dibujar_texto_neon(draw, img_base, xy, texto, fuente, color_texto, color_glow, anchor="mm", grosor_glow=8):
+    """Crea un efecto de resplandor (glow) detrás del texto."""
+    x, y = xy
+    # Capa de resplandor
+    capa_glow = Image.new("RGBA", img_base.size, (0,0,0,0))
+    d_glow = ImageDraw.Draw(capa_glow)
+    d_glow.text((x, y+5), texto, fill=color_glow, font=fuente, anchor=anchor, stroke_width=grosor_glow, stroke_fill=color_glow)
+    capa_glow = capa_glow.filter(ImageFilter.GaussianBlur(10))
+    img_base.paste(capa_glow, (0,0), capa_glow)
+    
+    # Texto principal con borde
+    draw.text((x, y), texto, fill=color_texto, font=fuente, anchor=anchor, stroke_width=3, stroke_fill=(255,255,255,100))
 
-def crear_liston_inclinado(ancho, alto, texto, fuente):
-    img_liston = Image.new("RGBA", (ancho, alto), (0,0,0,0))
+def crear_liston_roto(ancho, alto, texto, fuente):
+    """Crea un listón rojo con borde amarillo simulando papel rasgado/dinámico."""
+    img_liston = Image.new("RGBA", (ancho + 100, alto + 100), (0,0,0,0))
     d = ImageDraw.Draw(img_liston)
     
-    x, y, w, h = 30, 30, ancho - 60, alto - 60
-    zigzags = 8
+    # Coordenadas base
+    x, y, w, h = 50, 50, ancho, alto
     
-    # Capa Sombra
-    puntos_sombra = [(x-10, y+20), (x+w+10, y-20)]
-    y_step = h / zigzags
-    for i in range(1, zigzags + 1):
-        x_offset = random.randint(-12, 12) if i < zigzags else 0
-        puntos_sombra.append((x+w+10 + x_offset, y-20 + (i * y_step)))
-    puntos_sombra.append((x-10, y+h+20))
-    for i in range(zigzags - 1, 0, -1):
-        x_offset = random.randint(-12, 12)
-        puntos_sombra.append((x-10 + x_offset, y+20 + (i * y_step)))
-    d.polygon(puntos_sombra, fill=(255, 200, 0, 255)) 
-
-    # Capa Principal
-    puntos = [(x, y), (x+w, y-40)]
-    for i in range(1, zigzags + 1):
-        x_offset = random.randint(-12, 12) if i < zigzags else 0
-        puntos.append((x+w + x_offset, y-40 + (i * y_step)))
-    puntos.append((x, y+h))
-    for i in range(zigzags - 1, 0, -1):
-        x_offset = random.randint(-12, 12)
-        puntos.append((x + x_offset, y + (i * y_step)))
-    d.polygon(puntos, fill=(255, 50, 0, 255)) 
+    # Borde Amarillo (Sombra trasera)
+    puntos_sombra = [
+        (x-20, y-10), (x+w//2, y-30), (x+w+20, y-10),
+        (x+w-10, y+h//2), (x+w+30, y+h+20),
+        (x+w//2, y+h+40), (x-30, y+h+10), (x+10, y+h//2)
+    ]
+    d.polygon(puntos_sombra, fill=(255, 215, 0, 255)) # Dorado/Amarillo
     
-    texto_mostrar = texto if texto else "¡OFERTA!"
-    d.text((ancho//2, alto//2 - 10), texto_mostrar, fill=(255, 235, 0), font=fuente, anchor="mm", stroke_width=4, stroke_fill=(180, 0, 0))
+    # Fondo Rojo Principal
+    puntos_rojos = [
+        (x, y), (x+w//2, y-15), (x+w, y),
+        (x+w-20, y+h//2), (x+w+10, y+h),
+        (x+w//2, y+h+15), (x-10, y+h), (x+20, y+h//2)
+    ]
+    d.polygon(puntos_rojos, fill=(230, 20, 0, 255)) # Rojo Intenso
+    
+    # Texto del descuento
+    d.text((x + w//2, y + h//2), texto, fill=(255, 255, 255, 255), font=fuente, anchor="mm", stroke_width=6, stroke_fill=(150, 0, 0, 255))
+    
     return img_liston
 
 # --- INTERFAZ PRINCIPAL ---
-st.title("🛒 Generador de Ofertas Pro")
+st.title("🛒 Generador de Ofertas Pro (Estilo Neón)")
 
 st.header("1. Datos Generales del Producto")
 col1, col2, col3, col4 = st.columns([3, 2, 3, 2])
 with col1:
-    producto = st.text_input("Nombre del Producto", placeholder="Ej. Tenis Deportivos", key="prod_name")
+    producto = st.text_input("Nombre del Producto", placeholder="Ej. Audífonos Gamer", key="prod_name")
 with col2:
-    precio = st.text_input("Precio de Oferta", placeholder="Ej. 268.68", key="prod_price")
+    precio = st.text_input("Precio de Oferta", placeholder="Ej. 168.98", key="prod_price")
 with col3:
     link_ml = st.text_input("Link de Compra", placeholder="https://meli.la/...", key="prod_link")
 with col4:
@@ -120,7 +112,7 @@ with col4:
 
 st.divider()
 
-tab1, tab2 = st.tabs(["🖼️ Creador de Imagen", "🎵 Descripción para TikTok"])
+tab1, tab2 = st.tabs(["🖼️ Creador de Imagen Premium", "🎵 Descripción para TikTok"])
 
 with tab1:
     col_izq, col_der = st.columns([1, 2])
@@ -128,121 +120,136 @@ with tab1:
     with col_izq:
         st.markdown("### 🎛️ Elementos de Imagen")
         imagen_subida = st.file_uploader("Sube la foto de tu producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
-        precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 500", key="prod_orig_price")
-        porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡ÚLTIMOS PARES!", key="desc_txt")
+        precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 259.98", key="prod_orig_price")
+        porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡34% OFF!", key="desc_txt")
         
         st.markdown("### 🎚️ Ajuste de Tamaños (Letras)")
-        # Sliders específicos 
-        tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=30, max_value=150, value=90)
-        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=30, max_value=150, value=70)
-        tamano_sello = st.slider("Tamaño: MÁS VENDIDO", min_value=20, max_value=120, value=45)
+        tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=50, max_value=250, value=170)
+        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=50, max_value=150, value=100)
+        tamano_precio = st.slider("Tamaño: Precio Oferta", min_value=100, max_value=300, value=220)
 
     with col_der:
         if imagen_subida and precio and precio_original_txt:
-            
             ancho, alto = 1080, 1920 
-            banner_base = Image.new("RGBA", (ancho, alto), (255, 255, 255, 255))
+            
+            # 1. FONDO AZUL DEGRADADO (Estilo Profesional)
+            banner_base = Image.new("RGBA", (ancho, alto), (30, 100, 255, 255))
             draw = ImageDraw.Draw(banner_base)
             
-            # Confeti de fondo
-            colores_confeti = [(255, 70, 70), (255, 215, 0), (70, 150, 255)]
-            for _ in range(120):
-                x = random.randint(50, ancho-50)
-                y = random.randint(50, alto-50)
-                tam = random.randint(20, 35)
-                color = random.choice(colores_confeti)
-                angle = random.uniform(0, math.pi)
-                p1 = (x, y)
-                p2 = (x + tam * math.cos(angle), y + tam * math.sin(angle))
-                p3 = (x + tam * math.cos(angle) - (tam/2) * math.sin(angle), y + tam * math.sin(angle) + (tam/2) * math.cos(angle))
-                p4 = (x - (tam/2) * math.sin(angle), y + (tam/2) * math.cos(angle))
-                draw.polygon([p1, p2, p3, p4], fill=color)
-
-            # CARGAR FUENTES CON LA NUEVA FUNCIÓN
-            font_titulo = obtener_fuente(90)
-            font_precios = obtener_fuente(130)
+            # Dibujar un resplandor cyan en el centro
+            glow_bg = Image.new("RGBA", (ancho, alto), (0,0,0,0))
+            d_glow = ImageDraw.Draw(glow_bg)
+            d_glow.ellipse([(-200, 300), (1280, 1400)], fill=(0, 200, 255, 120))
+            glow_bg = glow_bg.filter(ImageFilter.GaussianBlur(150))
+            banner_base.paste(glow_bg, (0,0), glow_bg)
             
+            # Confeti (Dorado, Plata, Cyan)
+            colores_confeti = [(255, 215, 0), (200, 200, 200), (0, 255, 255), (255, 100, 100)]
+            for _ in range(70):
+                x = random.randint(20, ancho-20)
+                y = random.randint(20, alto-20)
+                tam_x = random.randint(15, 40)
+                tam_y = random.randint(10, 20)
+                color = random.choice(colores_confeti)
+                
+                img_confeti = Image.new("RGBA", (tam_x, tam_y), color)
+                img_confeti = img_confeti.rotate(random.randint(0, 360), expand=True)
+                banner_base.paste(img_confeti, (x, y), img_confeti)
+
+            # 2. CARGAR FUENTES ESCALABLES
+            font_titulo = obtener_fuente(100)
             f_liston = obtener_fuente(tamano_liston)
             f_tachado = obtener_fuente(tamano_tachado)
-            f_sello_mas = obtener_fuente(tamano_sello)
-            f_sello_vendido = obtener_fuente(max(10, tamano_sello - 15))
+            f_precio_final = obtener_fuente(tamano_precio)
+            f_sello = obtener_fuente(60)
+            f_sello_mini = obtener_fuente(40)
             
-            # Título Superior Fijo
-            texto_oferta = "OFERTA RELÁMPAGO"
-            draw.text((ancho//2 + 4, 134), texto_oferta, fill=(210, 210, 210, 255), font=font_titulo, anchor="mm")
-            draw.text((ancho//2, 130), texto_oferta, fill=(50, 50, 50), font=font_titulo, anchor="mm", stroke_width=3, stroke_fill=(200, 200, 200))
+            draw = ImageDraw.Draw(banner_base)
 
-            # Renderizar Imagen del producto
+            # 3. TÍTULO "OFERTA RELÁMPAGO" CON NEÓN
+            texto_oferta = "⚡ OFERTA RELÁMPAGO ⚡"
+            dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
+
+            # 4. IMAGEN DEL PRODUCTO CON SOMBRA
             img_prod = Image.open(imagen_subida).convert("RGBA")
             w_orig, h_orig = img_prod.size
-            nuevo_alto = 750 
+            nuevo_alto = 1000 
             nuevo_ancho = int((nuevo_alto / h_orig) * w_orig)
-            if nuevo_ancho > ancho * 0.80:
-                nuevo_ancho = int(ancho * 0.80)
+            if nuevo_ancho > ancho * 0.90:
+                nuevo_ancho = int(ancho * 0.90)
                 nuevo_alto = int((nuevo_ancho / w_orig) * h_orig)
                 
             img_prod = img_prod.resize((nuevo_ancho, nuevo_alto), Image.Resampling.LANCZOS)
             pos_prod_x = (ancho - nuevo_ancho) // 2
             pos_prod_y = 350 
             
+            # Sombra fuerte del producto
             sombra_prod = Image.new("RGBA", (nuevo_ancho, nuevo_alto), (0,0,0,0))
             sombra_draw = ImageDraw.Draw(sombra_prod)
-            sombra_draw.ellipse([(50, nuevo_alto-60), (nuevo_ancho-50, nuevo_alto+20)], fill=(0,0,0,80))
-            sombra_prod = sombra_prod.filter(ImageFilter.GaussianBlur(20))
-            banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y), sombra_prod)
+            sombra_draw.rectangle([(50, 50), (nuevo_ancho-50, nuevo_alto-50)], fill=(0,0,0,180))
+            sombra_prod = sombra_prod.filter(ImageFilter.GaussianBlur(40))
+            banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+20), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # Sello "MÁS VENDIDO"
-            pos_sello_x, pos_sello_y = 820, 280
-            draw_scalloped_badge(draw, pos_sello_x+8, pos_sello_y+8, 150, 130, 16, (230, 230, 230, 255), (0,0,0,0), 0) 
-            draw_scalloped_badge(draw, pos_sello_x, pos_sello_y, 150, 130, 16, (148, 230, 255, 255), (255, 255, 255, 255), 10)
-            draw.ellipse([(pos_sello_x - 110, pos_sello_y - 110), (pos_sello_x + 110, pos_sello_y + 110)], outline=(255, 255, 255, 255), width=5)
+            # 5. SELLO "MÁS VENDIDO" (Estilo Neón)
+            pos_sello_x, pos_sello_y = 820, 350
+            radio = 160
             
-            draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2)), "MÁS", fill=(72, 155, 230), font=f_sello_mas, anchor="mm")
-            draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 5), "VENDIDO", fill=(72, 155, 230), font=f_sello_vendido, anchor="mm")
+            # Resplandor trasero del sello
+            sello_glow = Image.new("RGBA", (radio*3, radio*3), (0,0,0,0))
+            ImageDraw.Draw(sello_glow).ellipse([(radio//2, radio//2), (radio*2.5, radio*2.5)], fill=(0, 255, 255, 80))
+            sello_glow = sello_glow.filter(ImageFilter.GaussianBlur(20))
+            banner_base.paste(sello_glow, (pos_sello_x - radio - 40, pos_sello_y - radio - 40), sello_glow)
+            
+            # Sello principal
+            draw.ellipse([(pos_sello_x - radio, pos_sello_y - radio), (pos_sello_x + radio, pos_sello_y + radio)], fill=(10, 40, 80, 255), outline=(0, 255, 255, 255), width=12)
+            draw.ellipse([(pos_sello_x - radio + 20, pos_sello_y - radio + 20), (pos_sello_x + radio - 20, pos_sello_y + radio - 20)], outline=(0, 255, 255, 150), width=4)
+            
+            draw.text((pos_sello_x, pos_sello_y - 30), "MÁS", fill=(255, 255, 255), font=f_sello, anchor="mm")
+            draw.text((pos_sello_x, pos_sello_y + 40), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
 
-            # Listón Inclinado
-            liston = crear_liston_inclinado(950, 220, porcentaje_desc_txt, f_liston)
-            liston_rotado = liston.rotate(8, expand=True) 
+            # 6. LISTÓN "34% OFF" ROTO E INCLINADO
+            liston = crear_liston_roto(950, 250, porcentaje_desc_txt, f_liston)
+            liston_rotado = liston.rotate(10, expand=True) 
             pos_liston_x = (ancho - liston_rotado.width) // 2
-            pos_liston_y = 1180
+            pos_liston_y = 900 # Puesto un poco más arriba cruzando el producto
+            
+            # Sombra del listón
+            sombra_liston = Image.new("RGBA", liston_rotado.size, (0,0,0,0))
+            sombra_liston.paste(liston_rotado, (0,0), liston_rotado)
+            sombra_liston = sombra_liston.filter(ImageFilter.GaussianBlur(15))
+            
+            banner_base.paste(sombra_liston, (pos_liston_x+10, pos_liston_y+20), liston_rotado)
             banner_base.paste(liston_rotado, (pos_liston_x, pos_liston_y), liston_rotado)
 
-            # PRECIOS
-            precio_orig_y = 1580
+            # 7. PRECIOS INFERIORES
+            precio_orig_y = 1550
             precio_final_y = 1750
             
-            # Precio Tachado
+            # Precio Tachado (Blanco con sombra negra y línea roja)
             texto_original_str = f"${precio_original_txt}"
             w_tachado = draw.textlength(texto_original_str, font=f_tachado)
-            draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(120, 120, 120), font=f_tachado, anchor="mm")
+            draw.text((ancho//2 + 5, precio_orig_y + 5), texto_original_str, fill=(0, 0, 0, 150), font=f_tachado, anchor="mm") # Sombra
+            draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(255, 255, 255, 255), font=f_tachado, anchor="mm")
+            draw.line([(ancho//2 - w_tachado//2 - 20, precio_orig_y), (ancho//2 + w_tachado//2 + 20, precio_orig_y)], fill=(255, 50, 50), width=12)
             
-            grosor_linea = max(4, tamano_tachado // 10)
-            draw.line([(ancho//2 - w_tachado//2 - 15, precio_orig_y), (ancho//2 + w_tachado//2 + 15, precio_orig_y)], fill=(255, 0, 0), width=grosor_linea)
-            
-            # Precio Oferta (Fijo y Gigante)
+            # Precio Oferta (Verde Neón Gigante)
             texto_oferta_str = f"${precio} MXN"
-            draw.text((ancho//2 + 4, precio_final_y + 4), texto_oferta_str, fill=(0, 80, 0, 120), font=font_precios, anchor="mm")
-            draw.text((ancho//2, precio_final_y), texto_oferta_str, fill=(100, 230, 0), font=font_precios, anchor="mm", stroke_width=3, stroke_fill=(30, 130, 30))
+            dibujar_texto_neon(draw, banner_base, (ancho//2, precio_final_y), texto_oferta_str, f_precio_final, (100, 255, 100), (0, 150, 0), grosor_glow=15)
 
             buffered = BytesIO()
             banner_base.save(buffered, format="PNG")
             
-            st.image(buffered.getvalue(), caption="Diseño Listo", use_container_width=True)
-            st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
+            st.image(buffered.getvalue(), caption="Diseño Premium Generado", use_container_width=True)
+            st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_pro_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
         else:
             st.info("👆 Sube la imagen y asegúrate de llenar Precio y Precio Original en la barra izquierda para generar el diseño.")
 
 with tab2:
     if producto and precio and link_ml:
         st.subheader("📱 Copia esta descripción para tu video de TikTok")
-        
         hashtag_producto = f"#{producto.replace(' ', '').lower()}"
-        
         texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
-        
         st.code(texto_tiktok, language="text")
-        
-        st.info("💡 Consejo: En TikTok, los links en la descripción a veces no son clicables. Considera poner el link también en tu perfil (Bio) o en un comentario fijado.")
     else:
-        st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para generar la descripción de TikTok.")
+        st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para generar la descripción.")
