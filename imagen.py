@@ -27,15 +27,16 @@ def limpiar_datos():
         st.session_state[k] = ""
     st.session_state.reset_uploader += 1 
 
-# --- SISTEMA ULTRA ROBUSTO DE FUENTES ---
+# --- SISTEMA ULTRA ROBUSTO DE FUENTES (CON ACENTOS) ---
 @st.cache_resource
 def descargar_fuente():
-    """Descarga la fuente y verifica que no esté corrupta o vacía."""
-    font_name = "Montserrat-Bold.ttf"
+    """Descarga Roboto Bold, que tiene soporte completo para tildes en español."""
+    font_name = "Roboto-Acentos-Bold.ttf" # Nombre nuevo para forzar descarga limpia
     
     if not os.path.exists(font_name) or os.path.getsize(font_name) < 10000:
         try:
-            url = "https://github.com/google/fonts/raw/main/ofl/montserrat/Montserrat-Bold.ttf"
+            # URL de Roboto (Soporte total Latino)
+            url = "https://github.com/google/fonts/raw/main/apache/roboto/Roboto-Bold.ttf"
             req = urllib.request.Request(url, headers={'User-Agent': 'Mozilla/5.0'})
             with urllib.request.urlopen(req, timeout=5) as response, open(font_name, 'wb') as out_file:
                 out_file.write(response.read())
@@ -147,7 +148,9 @@ with tab1:
     
     with col_izq:
         st.markdown("### 🎛️ Elementos de Imagen")
+        
         imagen_subida = st.file_uploader("Sube la foto de tu producto", type=["png", "jpg", "jpeg"], key=f"uploader_{st.session_state.reset_uploader}")
+        
         precio_original_txt = st.text_input("Precio Original Tachado", placeholder="Ej. 259.98", key="prod_orig_price")
         porcentaje_desc_txt = st.text_input("Texto del Descuento", value="¡34% OFF!", key="desc_txt")
         
@@ -177,7 +180,7 @@ with tab1:
                 glow_bg = glow_bg.filter(ImageFilter.GaussianBlur(150))
                 banner_base.paste(glow_bg, (0,0), glow_bg)
 
-            # 2. CARGAR FUENTES ESCALABLES
+            # 2. CARGAR FUENTES ESCALABLES (Ahora con Roboto Bold)
             font_titulo = obtener_fuente(tamano_titulo) 
             f_liston = obtener_fuente(tamano_liston)
             f_tachado = obtener_fuente(tamano_tachado)
@@ -185,7 +188,7 @@ with tab1:
             f_sello = obtener_fuente(tamano_sello)
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
-            # 3. TÍTULO "OFERTA RELÁMPAGO" (Con su acento correcto y sin emojis)
+            # 3. TÍTULO CON ACENTO PERFECTO
             texto_oferta = "OFERTA RELÁMPAGO"
             dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
@@ -209,7 +212,7 @@ with tab1:
             banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+20), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # 5. SELLO "MÁS VENDIDO" (Con acento correcto)
+            # 5. SELLO CON ACENTO PERFECTO
             pos_sello_x, pos_sello_y = 850, 380
             draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=180, r_inner=150, points=16)
             
