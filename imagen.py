@@ -201,7 +201,8 @@ with tab1:
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
             # 3. TÍTULO "OFERTA RELÁMPAGO"
-            texto_oferta = "⚡ OFERTA RELÁMPAGO ⚡"
+            # 3. TÍTULO "OFERTA RELÁMPAGO" (Sin emojis para evitar errores de caracteres)
+            texto_oferta = "OFERTA RELAMPAGO"
             dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
             # 4. IMAGEN DEL PRODUCTO CON SOMBRA
