@@ -174,7 +174,7 @@ with tab1:
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
             # 3. TÍTULO CON UNICODE PARA FORZAR ACENTO PERFECTO (OFERTA RELÁMPAGO)
-            texto_oferta = "OFERTA REL\u00c1MPAGO"
+            texto_oferta = "OFERTA"
             dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
             # 4. IMAGEN DEL PRODUCTO CON SOMBRA
