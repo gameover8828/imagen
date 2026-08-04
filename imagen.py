@@ -5,6 +5,7 @@ import os
 import math
 import random
 import urllib.request
+import urllib.parse
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -249,5 +250,17 @@ with tab2:
         hashtag_producto = f"#{producto.replace(' ', '').lower()}"
         texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
         st.code(texto_tiktok, language="text")
+        
+        # --- BOTÓN PARA ENVIAR A TIKTOK ---
+        st.markdown("### 🚀 Compartir Directo")
+        texto_encoded = urllib.parse.quote(texto_tiktok)
+        url_tiktok_share = f"https://www.tiktok.com/upload?text={texto_encoded}"
+        st.markdown(
+            f'<a href="{url_tiktok_share}" target="_blank">'
+            f'<button style="background-color: #FE2C55; color: white; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">'
+            f'🎵 Enviar a TikTok con la Descripción'
+            f'</button></a>',
+            unsafe_allow_html=True
+        )
     else:
         st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para generar la descripción.")
