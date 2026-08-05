@@ -6,6 +6,7 @@ import math
 import random
 import urllib.request
 import urllib.parse
+import base64
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -129,7 +130,7 @@ with col4:
 
 st.divider()
 
-tab1, tab2 = st.tabs(["🖼️ Creador de Imagen Premium", "🎵 Descripción para TikTok"])
+tab1, tab2 = st.tabs(["🖼️ Creador de Imagen Premium", "🎵 Descripción y Compartir"])
 
 with tab1:
     col_izq, col_der = st.columns([1, 2])
@@ -239,6 +240,9 @@ with tab1:
             buffered = BytesIO()
             banner_base.save(buffered, format="PNG")
             
+            # Guardar en session_state para compartir la imagen directamente
+            st.session_state.imagen_generada = buffered.getvalue()
+
             st.image(buffered.getvalue(), caption="Diseño Premium Generado", use_container_width=True)
             st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_pro_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
         else:
@@ -246,21 +250,43 @@ with tab1:
 
 with tab2:
     if producto and precio and link_ml:
-        st.subheader("📱 Copia esta descripción para tu video de TikTok")
+        st.subheader("📱 Descripción generada para publicaciones")
         hashtag_producto = f"#{producto.replace(' ', '').lower()}"
         texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
         st.code(texto_tiktok, language="text")
         
-        # --- BOTÓN PARA ENVIAR A TIKTOK ---
-        st.markdown("### 🚀 Compartir Directo")
+        st.markdown("---")
+        st.markdown("### 🚀 Compartir Directo en Redes")
+        
+        # Codificar texto para URLs
         texto_encoded = urllib.parse.quote(texto_tiktok)
         url_tiktok_share = f"https://www.tiktok.com/upload?text={texto_encoded}"
-        st.markdown(
-            f'<a href="{url_tiktok_share}" target="_blank">'
-            f'<button style="background-color: #FE2C55; color: white; border: none; padding: 12px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%;">'
-            f'🎵 Enviar a TikTok con la Descripción'
-            f'</button></a>',
-            unsafe_allow_html=True
-        )
+        url_whatsapp_share = f"https://api.whatsapp.com/send?text={texto_encoded}"
+        
+        col_btn1, col_btn2 = st.columns(2)
+        
+        with col_btn1:
+            st.markdown(
+                f'<a href="{url_tiktok_share}" target="_blank" style="text-decoration: none;">'
+                f'<button style="background-color: #FE2C55; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">'
+                f'🎵 Enviar a TikTok'
+                f'</button></a>',
+                unsafe_allow_html=True
+            )
+            st.caption("Abre la plataforma y pega la descripción.")
+            
+        with col_btn2:
+            st.markdown(
+                f'<a href="{url_whatsapp_share}" target="_blank" style="text-decoration: none;">'
+                f'<button style="background-color: #25D366; color: white; border: none; padding: 14px 20px; font-size: 16px; font-weight: bold; border-radius: 8px; cursor: pointer; width: 100%; display: flex; align-items: center; justify-content: center; gap: 8px;">'
+                f'💬 Enviar a WhatsApp'
+                f'</button></a>',
+                unsafe_allow_html=True
+            )
+            st.caption("Abre WhatsApp con la descripción lista para enviar.")
+            
+        # Opción extra por si la imagen se generó
+        if "imagen_generada" in st.session_state:
+            st.info("💡 **Tip:** Recuerda descargar primero tu **Imagen Premium** en la pestaña anterior para poder adjuntarla junto con el texto al compartir.")
     else:
-        st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para generar la descripción.")
+        st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para habilitar los botones de compartir.")
