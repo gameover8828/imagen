@@ -143,9 +143,9 @@ with tab1:
         
         st.markdown("### 🎚️ Ajuste de Tamaños (Letras)")
         tamano_titulo = st.slider("Tamaño: Título OFERTA", min_value=50, max_value=200, value=100)
-        tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=50, max_value=250, value=170)
-        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=50, max_value=150, value=100)
-        tamano_precio = st.slider("Tamaño: Precio Oferta", min_value=100, max_value=300, value=220)
+        tamano_liston = st.slider("Tamaño: Texto del Descuento", min_value=50, max_value=250, value=150)
+        tamano_tachado = st.slider("Tamaño: Precio Tachado", min_value=50, max_value=150, value=90)
+        tamano_precio = st.slider("Tamaño: Precio Oferta", min_value=100, max_value=300, value=180)
         tamano_sello = st.slider("Tamaño: Letra MÁS VENDIDO", min_value=30, max_value=100, value=60)
 
     with col_der:
@@ -175,82 +175,81 @@ with tab1:
             f_sello = obtener_fuente(tamano_sello)
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
-            # 3. TÍTULO CON UNICODE PARA FORZAR ACENTO PERFECTO (OFERTA RELÁMPAGO)
+            # 3. TÍTULO SUPERIOR (OFERTA RELÁMPAGO)
             texto_oferta = "OFERTA"
-            dibujar_texto_neon(draw, banner_base, (ancho//2, 160), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
+            dibujar_texto_neon(draw, banner_base, (ancho//2, 140), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
-            # 4. IMAGEN DEL PRODUCTO CON SOMBRA
+            # 4. IMAGEN DEL PRODUCTO (Ajustada para dejar espacio libre arriba y abajo)
             img_prod = Image.open(imagen_subida).convert("RGBA")
             w_orig, h_orig = img_prod.size
-            nuevo_alto = 900 
+            nuevo_alto = 720  # Reducido para evitar solapamientos
             nuevo_ancho = int((nuevo_alto / h_orig) * w_orig)
-            if nuevo_ancho > ancho * 0.90:
-                nuevo_ancho = int(ancho * 0.90)
+            if nuevo_ancho > ancho * 0.82:
+                nuevo_ancho = int(ancho * 0.82)
                 nuevo_alto = int((nuevo_ancho / w_orig) * h_orig)
                 
             img_prod = img_prod.resize((nuevo_ancho, nuevo_alto), Image.Resampling.LANCZOS)
             pos_prod_x = (ancho - nuevo_ancho) // 2
-            pos_prod_y = 350 
+            pos_prod_y = 280  # Posición vertical óptima
             
             sombra_prod = Image.new("RGBA", (nuevo_ancho, nuevo_alto), (0,0,0,0))
             sombra_draw = ImageDraw.Draw(sombra_prod)
-            sombra_draw.rectangle([(50, 50), (nuevo_ancho-50, nuevo_alto-50)], fill=(0,0,0,180))
-            sombra_prod = sombra_prod.filter(ImageFilter.GaussianBlur(40))
-            banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+20), sombra_prod)
+            sombra_draw.rectangle([(40, 40), (nuevo_ancho-40, nuevo_alto-40)], fill=(0,0,0,180))
+            sombra_prod = sombra_prod.filter(ImageFilter.GaussianBlur(35))
+            banner_base.paste(sombra_prod, (pos_prod_x, pos_prod_y+15), sombra_prod)
             banner_base.paste(img_prod, (pos_prod_x, pos_prod_y), img_prod)
 
-            # 5. SELLO CON UNICODE PARA FORZAR ACENTO (MÁS VENDIDO)
-            pos_sello_x, pos_sello_y = 850, 380
-            draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=180, r_inner=150, points=16)
+            # 5. SELLO (MÁS VENDIDO)
+            pos_sello_x, pos_sello_y = 860, 320
+            draw = draw_neon_scalloped_badge(banner_base, pos_sello_x, pos_sello_y, r_outer=160, r_inner=135, points=16)
             
             texto_mas = "+"
-            draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 10), texto_mas, fill=(255, 255, 255), font=f_sello, anchor="mm")
-            draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 10), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
+            draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 5), texto_mas, fill=(255, 255, 255), font=f_sello, anchor="mm")
+            draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 5), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
 
-            # 6. LISTÓN "34% OFF"
-            liston = crear_liston_roto(950, 250, porcentaje_desc_txt, f_liston)
-            liston_rotado = liston.rotate(10, expand=True) 
+            # 6. LISTÓN DE DESCUENTO (Ej. ¡34% OFF!)
+            liston = crear_liston_roto(880, 210, porcentaje_desc_txt, f_liston)
+            liston_rotado = liston.rotate(8, expand=True) 
             pos_liston_x = (ancho - liston_rotado.width) // 2
-            pos_liston_y = 900 
+            pos_liston_y = 1010  # Ubicado exactamente debajo del producto y arriba de los precios
             
             sombra_liston = Image.new("RGBA", liston_rotado.size, (0,0,0,0))
             sombra_liston.paste(liston_rotado, (0,0), liston_rotado)
             sombra_liston = sombra_liston.filter(ImageFilter.GaussianBlur(15))
             
-            banner_base.paste(sombra_liston, (pos_liston_x+10, pos_liston_y+20), liston_rotado)
+            banner_base.paste(sombra_liston, (pos_liston_x+10, pos_liston_y+15), liston_rotado)
             banner_base.paste(liston_rotado, (pos_liston_x, pos_liston_y), liston_rotado)
 
-            # 7. PRECIOS INFERIORES
-            precio_orig_y = 1550
-            precio_final_y = 1750
+            # 7. PRECIOS INFERIORES (Subidos para que no los tape la interfaz de TikTok / WhatsApp)
+            precio_orig_y = 1440
+            precio_final_y = 1660
             
             # Precio Tachado
             texto_original_str = f"${precio_original_txt}"
             w_tachado = draw.textlength(texto_original_str, font=f_tachado)
-            draw.text((ancho//2 + 5, precio_orig_y + 5), texto_original_str, fill=(0, 0, 0, 150), font=f_tachado, anchor="mm") 
+            draw.text((ancho//2 + 4, precio_orig_y + 4), texto_original_str, fill=(0, 0, 0, 160), font=f_tachado, anchor="mm") 
             draw.text((ancho//2, precio_orig_y), texto_original_str, fill=(255, 255, 255, 255), font=f_tachado, anchor="mm")
             
-            grosor_tachado = max(6, tamano_tachado // 10)
-            draw.line([(ancho//2 - w_tachado//2 - 20, precio_orig_y), (ancho//2 + w_tachado//2 + 20, precio_orig_y)], fill=(255, 50, 50), width=grosor_tachado)
+            grosor_tachado = max(5, tamano_tachado // 9)
+            draw.line([(ancho//2 - w_tachado//2 - 15, precio_orig_y), (ancho//2 + w_tachado//2 + 15, precio_orig_y)], fill=(255, 50, 50), width=grosor_tachado)
             
             # Precio Oferta 
             texto_oferta_str = f"${precio} MXN"
-            dibujar_texto_neon(draw, banner_base, (ancho//2, precio_final_y), texto_oferta_str, f_precio_final, (100, 255, 100), (0, 150, 0), grosor_glow=15)
+            dibujar_texto_neon(draw, banner_base, (ancho//2, precio_final_y), texto_oferta_str, f_precio_final, (100, 255, 100), (0, 150, 0), grosor_glow=12)
 
             buffered = BytesIO()
             banner_base.save(buffered, format="PNG")
             
-            # Guardar en session_state para compartir la imagen directamente
             st.session_state.imagen_generada = buffered.getvalue()
 
-            st.image(buffered.getvalue(), caption="Diseño Premium Generado", use_container_width=True)
+            st.image(buffered.getvalue(), caption="Diseño Premium Optimizado", use_container_width=True)
             st.download_button(label="📥 Descargar Imagen", data=buffered.getvalue(), file_name=f"banner_pro_{producto.replace(' ', '_')}.png", mime="image/png", use_container_width=True)
         else:
             st.info("👆 Sube la imagen del producto y llena los precios para generar el diseño.")
 
 with tab2:
     if producto and precio and link_ml:
-        st.subheader("📱 Descripción generada para publicaciones")
+        st.subheader("📱 Descripción generada para tus publicaciones")
         hashtag_producto = f"#{producto.replace(' ', '').lower()}"
         texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
         st.code(texto_tiktok, language="text")
@@ -258,7 +257,6 @@ with tab2:
         st.markdown("---")
         st.markdown("### 🚀 Compartir Directo en Redes")
         
-        # Codificar texto para URLs
         texto_encoded = urllib.parse.quote(texto_tiktok)
         url_tiktok_share = f"https://www.tiktok.com/upload?text={texto_encoded}"
         url_whatsapp_share = f"https://api.whatsapp.com/send?text={texto_encoded}"
@@ -285,8 +283,7 @@ with tab2:
             )
             st.caption("Abre WhatsApp con la descripción lista para enviar.")
             
-        # Opción extra por si la imagen se generó
         if "imagen_generada" in st.session_state:
-            st.info("💡 **Tip:** Recuerda descargar primero tu **Imagen Premium** en la pestaña anterior para poder adjuntarla junto con el texto al compartir.")
+            st.info("💡 **Tip:** Recuerda descargar primero tu **Imagen Premium** optimizada en la pestaña anterior para adjuntarla junto con el texto al compartir.")
     else:
         st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para habilitar los botones de compartir.")
