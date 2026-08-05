@@ -6,7 +6,6 @@ import math
 import random
 import urllib.request
 import urllib.parse
-import base64
 
 # --- CONFIGURACIÓN DE LA PÁGINA ---
 st.set_page_config(
@@ -175,14 +174,14 @@ with tab1:
             f_sello = obtener_fuente(tamano_sello)
             f_sello_mini = obtener_fuente(max(20, tamano_sello - 20))
 
-            # 3. TÍTULO SUPERIOR (OFERTA RELÁMPAGO)
+            # 3. TÍTULO SUPERIOR
             texto_oferta = "OFERTA"
             dibujar_texto_neon(draw, banner_base, (ancho//2, 140), texto_oferta, font_titulo, (255, 255, 255, 255), (0, 200, 255, 255))
 
-            # 4. IMAGEN DEL PRODUCTO (Ajustada para dejar espacio libre arriba y abajo)
+            # 4. IMAGEN DEL PRODUCTO OPTIMIZADA
             img_prod = Image.open(imagen_subida).convert("RGBA")
             w_orig, h_orig = img_prod.size
-            nuevo_alto = 720  # Reducido para evitar solapamientos
+            nuevo_alto = 720 
             nuevo_ancho = int((nuevo_alto / h_orig) * w_orig)
             if nuevo_ancho > ancho * 0.82:
                 nuevo_ancho = int(ancho * 0.82)
@@ -190,7 +189,7 @@ with tab1:
                 
             img_prod = img_prod.resize((nuevo_ancho, nuevo_alto), Image.Resampling.LANCZOS)
             pos_prod_x = (ancho - nuevo_ancho) // 2
-            pos_prod_y = 280  # Posición vertical óptima
+            pos_prod_y = 280 
             
             sombra_prod = Image.new("RGBA", (nuevo_ancho, nuevo_alto), (0,0,0,0))
             sombra_draw = ImageDraw.Draw(sombra_prod)
@@ -207,11 +206,11 @@ with tab1:
             draw.text((pos_sello_x, pos_sello_y - (tamano_sello//2) + 5), texto_mas, fill=(255, 255, 255), font=f_sello, anchor="mm")
             draw.text((pos_sello_x, pos_sello_y + (tamano_sello//2) + 5), "VENDIDO", fill=(0, 255, 255), font=f_sello_mini, anchor="mm")
 
-            # 6. LISTÓN DE DESCUENTO (Ej. ¡34% OFF!)
+            # 6. LISTÓN DE DESCUENTO
             liston = crear_liston_roto(880, 210, porcentaje_desc_txt, f_liston)
             liston_rotado = liston.rotate(8, expand=True) 
             pos_liston_x = (ancho - liston_rotado.width) // 2
-            pos_liston_y = 1010  # Ubicado exactamente debajo del producto y arriba de los precios
+            pos_liston_y = 1010 
             
             sombra_liston = Image.new("RGBA", liston_rotado.size, (0,0,0,0))
             sombra_liston.paste(liston_rotado, (0,0), liston_rotado)
@@ -220,11 +219,10 @@ with tab1:
             banner_base.paste(sombra_liston, (pos_liston_x+10, pos_liston_y+15), liston_rotado)
             banner_base.paste(liston_rotado, (pos_liston_x, pos_liston_y), liston_rotado)
 
-            # 7. PRECIOS INFERIORES (Subidos para que no los tape la interfaz de TikTok / WhatsApp)
+            # 7. PRECIOS INFERIORES OPTIMIZADOS
             precio_orig_y = 1440
             precio_final_y = 1660
             
-            # Precio Tachado
             texto_original_str = f"${precio_original_txt}"
             w_tachado = draw.textlength(texto_original_str, font=f_tachado)
             draw.text((ancho//2 + 4, precio_orig_y + 4), texto_original_str, fill=(0, 0, 0, 160), font=f_tachado, anchor="mm") 
@@ -233,7 +231,6 @@ with tab1:
             grosor_tachado = max(5, tamano_tachado // 9)
             draw.line([(ancho//2 - w_tachado//2 - 15, precio_orig_y), (ancho//2 + w_tachado//2 + 15, precio_orig_y)], fill=(255, 50, 50), width=grosor_tachado)
             
-            # Precio Oferta 
             texto_oferta_str = f"${precio} MXN"
             dibujar_texto_neon(draw, banner_base, (ancho//2, precio_final_y), texto_oferta_str, f_precio_final, (100, 255, 100), (0, 150, 0), grosor_glow=12)
 
@@ -249,7 +246,7 @@ with tab1:
 
 with tab2:
     if producto and precio and link_ml:
-        st.subheader("📱 Descripción generada para tus publicaciones")
+        st.subheader("📱 Descripción para tus publicaciones")
         hashtag_producto = f"#{producto.replace(' ', '').lower()}"
         texto_tiktok = f"""🔥 ¡OFERTA RELÁMPAGO! 🔥\n\n¡No dejes pasar esta oportunidad! El {producto} que buscabas.\n\n💰 Llevátelo por solo $ {precio} MXN. 😱\n\n👉 Cómpralo de forma segura aquí: \n{link_ml}\n\n#ofertas #descuentos #promocion {hashtag_producto} #comprasonline"""
         st.code(texto_tiktok, language="text")
@@ -281,9 +278,13 @@ with tab2:
                 f'</button></a>',
                 unsafe_allow_html=True
             )
-            st.caption("Abre WhatsApp con la descripción lista para enviar.")
+            st.caption("Abre WhatsApp con el texto listo.")
             
         if "imagen_generada" in st.session_state:
-            st.info("💡 **Tip:** Recuerda descargar primero tu **Imagen Premium** optimizada en la pestaña anterior para adjuntarla junto con el texto al compartir.")
+            st.markdown("---")
+            st.info("💡 **Cómo enviar la imagen junto con el texto en WhatsApp:**\n"
+                    "1. Asegúrate de haber dado clic en **Descargar Imagen** en la pestaña anterior.\n"
+                    "2. Da clic en el botón verde de **WhatsApp** de arriba (el texto se cargará automáticamente).\n"
+                    "3. En tu chat de WhatsApp, selecciona el ícono de adjuntar (**+** o clip) y elige la imagen descargada para enviarlas juntas.")
     else:
         st.info("Llena el Nombre del Producto, Precio y Link en la parte superior para habilitar los botones de compartir.")
